@@ -1,7 +1,10 @@
 extern crate js_sys;
 extern crate wasm_bindgen;
 
-mod crossword;
+pub mod crossword;
+pub mod fill;
+
+use crate::crossword::Crossword;
 
 use self::js_sys::Array;
 use wasm_bindgen::prelude::*;
