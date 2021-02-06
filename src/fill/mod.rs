@@ -265,7 +265,7 @@ mod tests {
         let grid = Crossword::from_string(
             String::from(
                 "
-HOLANIKHIL*    
+STRAWBERRY*    
           *    
           *    
    *    **     
