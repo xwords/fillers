@@ -36,7 +36,7 @@ impl Solver {
         )
         .unwrap();
 
-        let candidate = filler.fill(&crossword).unwrap();
+        let candidate = filler.fill(&crossword, None).unwrap();
 
         candidate.contents.into()
     }

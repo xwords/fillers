@@ -18,8 +18,19 @@ pub struct Filler<'s> {
     word_cache: CachedWords,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct EntryLocationToFill {
+    pub(crate) start_row: usize,
+    pub(crate) start_col: usize,
+    pub(crate) direction: Direction,
+}
+
 pub trait Fill {
-    fn fill(&mut self, crossword: &Crossword) -> Result<Crossword, String>;
+    fn fill(
+        &mut self,
+        crossword: &Crossword,
+        entry_locations_to_fill: Option<&Vec<EntryLocationToFill>>,
+    ) -> Result<Crossword, String>;
 }
 
 impl<'s> Filler<'s> {
@@ -151,7 +162,11 @@ pub fn fill_one_word(candidate: &Crossword, chars: &EntryIterator, word: &str) -
 }
 
 impl<'s> Fill for Filler<'s> {
-    fn fill(&mut self, crossword: &Crossword) -> Result<Crossword, String> {
+    fn fill(
+        &mut self,
+        crossword: &Crossword,
+        entry_locations_to_fill: Option<&Vec<EntryLocationToFill>>,
+    ) -> Result<Crossword, String> {
         let mut num_candidates = 0;
         let mut candidates = vec![crossword.to_owned()];
 
@@ -163,11 +178,31 @@ impl<'s> Fill for Filler<'s> {
             BuildHasherDefault::<FxHasher>::default(),
         );
 
+        let mut entry_locations_to_fill_lookup = FxHashSet::default();
+        if entry_locations_to_fill.is_some() {
+            for entry_location in entry_locations_to_fill.unwrap() {
+                entry_locations_to_fill_lookup.insert((
+                    entry_location.direction.clone(),
+                    entry_location.start_row,
+                    entry_location.start_col,
+                ));
+            }
+        }
+        let partial_fill = entry_locations_to_fill.is_some();
+
         while let Some(candidate) = candidates.pop() {
             num_candidates += 1;
             // Find the next entry to fill, sorted by # possible words and start position.
-            let to_fill = entry_locations
+            let to_fill_option = entry_locations
                 .iter()
+                .filter(|iter| {
+                    !partial_fill
+                        || entry_locations_to_fill_lookup.contains(&(
+                            (*iter).direction.clone(),
+                            (*iter).start_row,
+                            (*iter).start_col,
+                        ))
+                })
                 .map(|entry_location| EntryIterator::new(&candidate, entry_location))
                 .filter(|iter| iter.clone().any(|c| c == ' '))
                 .min_by_key(|iter| {
@@ -176,8 +211,13 @@ impl<'s> Fill for Filler<'s> {
                         iter.entry_location.start_row,
                         iter.entry_location.start_col,
                     )
-                })
-                .unwrap();
+                });
+
+            if !to_fill_option.is_some() {
+                return Ok(candidate);
+            }
+
+            let to_fill = to_fill_option.unwrap();
 
             let potential_fills = self.word_cache.words(to_fill.clone(), self.index);
 
@@ -250,13 +290,13 @@ pub fn build_square_to_entry_lookup<'s>(
 #[cfg(test)]
 mod tests {
 
-    use crate::{fill::Fill, index::Index};
+    use crate::{crossword::Direction, fill::Fill, index::Index};
 
     use crate::Crossword;
 
     use std::{cmp::Ordering, time::Instant};
 
-    use super::Filler;
+    use super::{EntryLocationToFill, Filler};
 
     #[test]
     fn medium_grid() {
@@ -290,7 +330,7 @@ STRAWBERRY*
         let now = Instant::now();
         let index = Index::build_default();
         let mut filler = Filler::new(&index);
-        let filled_puz = filler.fill(&grid).unwrap();
+        let filled_puz = filler.fill(&grid, None).unwrap();
         println!("Filled in {} seconds.", now.elapsed().as_secs());
         println!("{}", filled_puz);
     }
@@ -315,7 +355,58 @@ RENAI
         let now = Instant::now();
         let index = Index::build_default();
         let mut filler = Filler::new(&index);
-        let filled_puz = filler.fill(&grid).unwrap();
+        let filled_puz = filler.fill(&grid, None).unwrap();
+        println!("Filled in {} seconds.", now.elapsed().as_secs());
+        println!("{}", filled_puz);
+    }
+
+    #[test]
+    fn medium_grid_specified_entries() {
+        let grid = Crossword::from_string(
+            String::from(
+                "
+STRAWBERRY*    
+          *    
+          *    
+   *    **     
+***   **       
+**         *   
+*         *    
+     *   *     
+    *         *
+   *         **
+       **   ***
+     **    *   
+    *          
+    *          
+    *          
+",
+            ),
+            15,
+            15,
+        )
+        .unwrap();
+
+        println!("{}", grid);
+
+        let now = Instant::now();
+        let index = Index::build_default();
+        let mut filler = Filler::new(&index);
+
+        let entry_locations_to_fill = vec![
+            EntryLocationToFill {
+                start_row: 0,
+                start_col: 0,
+                direction: Direction::Down,
+            },
+            EntryLocationToFill {
+                start_row: 0,
+                start_col: 1,
+                direction: Direction::Down,
+            },
+        ];
+
+        let filled_puz = filler.fill(&grid, Some(&entry_locations_to_fill)).unwrap();
         println!("Filled in {} seconds.", now.elapsed().as_secs());
         println!("{}", filled_puz);
     }
