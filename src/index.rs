@@ -33,6 +33,40 @@ impl TrieNode {
         self
     }
 
+    fn fill_words<T: Iterator<Item = char> + Clone>(
+        &self,
+        mut pattern: T,
+        partial: &mut String,
+        result: &mut Vec<String>,
+    ) {
+        if self.contents.is_some() {
+            partial.push(self.contents.unwrap());
+        }
+
+        match pattern.next() {
+            Some(c) => {
+                if c == ' ' {
+                    for child in self.children.values() {
+                        child.fill_words(pattern.clone(), partial, result);
+                    }
+                } else {
+                    if let Some(child) = self.children.get(&c) {
+                        child.fill_words(pattern.clone(), partial, result)
+                    }
+                }
+            }
+            None => {
+                if self.terminal {
+                    result.push(partial.clone());
+                }
+            }
+        }
+
+        if self.contents.is_some() {
+            partial.pop();
+        }
+    }
+
     fn is_valid<T: Iterator<Item = char> + Clone>(&self, mut chars: T) -> bool {
         match chars.next() {
             None => self.terminal,
@@ -74,7 +108,24 @@ impl Index {
         Index { trie_root }
     }
 
-    fn is_valid<T: Iterator<Item = char> + Clone>(&self, chars: T) -> bool {
+    pub fn build_default() -> Index {
+        let lines = lines_from_file("./WL-SP.txt")
+            .into_iter()
+            .filter(|s| s.len() > 2)
+            .collect();
+
+        Index::build(lines)
+    }
+
+    pub fn words<T: Iterator<Item = char> + Clone>(&self, pattern: T) -> Vec<String> {
+        let mut result = Vec::with_capacity(4);
+        let mut partial = String::with_capacity(4);
+        self.trie_root
+            .fill_words(pattern, &mut partial, &mut result);
+        result
+    }
+
+    pub fn is_valid<T: Iterator<Item = char> + Clone>(&self, chars: T) -> bool {
         self.trie_root.is_valid(chars)
     }
 }
@@ -93,11 +144,6 @@ mod tests {
 
     #[test]
     fn build_real_index() {
-        let lines = lines_from_file("./WL-SP.txt")
-            .into_iter()
-            .filter(|s| s.len() > 2)
-            .collect();
-
-        let index = Index::build(lines);
+        let index = Index::build_default();
     }
 }

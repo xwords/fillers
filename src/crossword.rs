@@ -2,9 +2,9 @@ use std::{fmt, hash::Hash};
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Crossword {
-    contents: String,
-    width: usize,
-    height: usize,
+    pub(crate) contents: String,
+    pub(crate) width: usize,
+    pub(crate) height: usize,
 }
 
 impl Crossword {
