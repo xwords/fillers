@@ -141,11 +141,11 @@ pub enum Direction {
 /// A word location in a `Crossword`.
 #[derive(Debug, PartialEq, Clone)]
 pub struct EntryLocation {
-    start_row: usize,
-    start_col: usize,
-    length: usize,
-    direction: Direction,
-    prefilled: bool,
+    pub(crate) start_row: usize,
+    pub(crate) start_col: usize,
+    pub(crate) length: usize,
+    pub(crate) direction: Direction,
+    pub(crate) prefilled: bool,
 }
 
 impl EntryLocation {
@@ -169,7 +169,7 @@ impl EntryLocation {
 #[derive(Clone, Debug)]
 pub struct EntryIterator<'s> {
     crossword: &'s Crossword,
-    entry_location: &'s EntryLocation,
+    pub(crate) entry_location: &'s EntryLocation,
     index: usize,
 }
 
@@ -204,13 +204,13 @@ impl<'s> Iterator for EntryIterator<'s> {
         };
         self.index += 1;
         let result = self.crossword.contents.as_bytes()[char_index] as char;
-        Some(result);
+        Some(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Crossword;
+    use super::{Crossword, EntryIterator};
 
     #[test]
     fn from_string() {
@@ -232,5 +232,20 @@ mod tests {
 
         assert_eq!(entries.len(), 12);
         assert_eq!(entries.last().unwrap().prefilled, false);
+    }
+
+    #[test]
+    fn get_entry_iterator() {
+        let result = Crossword::from_string(String::from("ABCDEFGHIJK*MNOPQRSTUVWX "), 5, 5);
+
+        assert!(result.is_ok());
+
+        let c = result.unwrap();
+        let entries = c.get_entries();
+
+        let entry_location = entries.first().unwrap();
+
+        let iter = EntryIterator::new(&c, entry_location);
+        assert_eq!(String::from("ABCDE"), iter.collect::<String>());
     }
 }

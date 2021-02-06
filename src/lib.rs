@@ -3,6 +3,7 @@ extern crate wasm_bindgen;
 
 pub mod crossword;
 pub mod fill;
+pub mod index;
 
 use crate::crossword::Crossword;
 
