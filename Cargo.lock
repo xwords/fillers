@@ -16,6 +16,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 name = "fillers"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
  "js-sys",
  "rand",
  "rustc-hash",
@@ -30,8 +31,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9495705279e7140bf035dde1f6e750c162df8b625267cd52cc44e0b156732c8"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]

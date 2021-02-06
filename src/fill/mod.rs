@@ -5,8 +5,6 @@ use std::{
 
 use crossword::{Direction, EntryIterator, EntryLocation};
 use hash::{Hash, Hasher};
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 use crate::{crossword, index::Index, Crossword};
