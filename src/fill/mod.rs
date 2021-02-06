@@ -56,7 +56,7 @@ pub fn is_valid_grid(
 
         used_words.insert(key);
 
-        if !is_valid_cache.is_valid(iter, index) {
+        if !entry_location.prefilled && !is_valid_cache.is_valid(iter, index) {
             return (false, used_words);
         }
     }
@@ -115,7 +115,7 @@ pub fn fill_one_word(candidate: &Crossword, chars: &EntryIterator, word: &str) -
         Direction::Across => {
             for (i, c) in candidate.contents.chars().enumerate() {
                 let row = i / candidate.width;
-                let col = i & candidate.width;
+                let col = i % candidate.width;
 
                 if row == entry_location.start_row
                     && entry_location.start_col <= col
@@ -130,7 +130,7 @@ pub fn fill_one_word(candidate: &Crossword, chars: &EntryIterator, word: &str) -
         Direction::Down => {
             for (i, c) in candidate.contents.chars().enumerate() {
                 let row = i / candidate.width;
-                let col = i & candidate.width;
+                let col = i % candidate.width;
 
                 if col == entry_location.start_col
                     && entry_location.start_row <= row
@@ -152,6 +152,7 @@ pub fn fill_one_word(candidate: &Crossword, chars: &EntryIterator, word: &str) -
 
 impl<'s> Fill for Filler<'s> {
     fn fill(&mut self, crossword: &Crossword) -> Result<Crossword, String> {
+        let mut num_candidates = 0;
         let mut candidates = vec![crossword.to_owned()];
 
         let entry_locations = crossword.get_entries();
@@ -163,12 +164,22 @@ impl<'s> Fill for Filler<'s> {
         );
 
         while let Some(candidate) = candidates.pop() {
+            num_candidates += 1;
+            if num_candidates == 30 {
+                break;
+            }
             // Find the next entry to fill, sorted by # possible words and start position.
             let to_fill = entry_locations
                 .iter()
                 .map(|entry_location| EntryIterator::new(&candidate, entry_location))
                 .filter(|iter| iter.clone().any(|c| c == ' '))
-                .min_by_key(|iter| (iter.entry_location.start_row, iter.entry_location.start_col))
+                .min_by_key(|iter| {
+                    (
+                        self.word_cache.words(iter.clone(), self.index).len(),
+                        iter.entry_location.start_row,
+                        iter.entry_location.start_col,
+                    )
+                })
                 .unwrap();
 
             let potential_fills = self.word_cache.words(to_fill.clone(), self.index);
@@ -225,7 +236,7 @@ pub fn build_square_to_entry_lookup<'s>(
                 for i in 0..entry_location.length {
                     result.insert(
                         (
-                            Direction::Across,
+                            Direction::Down,
                             entry_location.start_row + i,
                             entry_location.start_col,
                         ),
@@ -237,4 +248,70 @@ pub fn build_square_to_entry_lookup<'s>(
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::{fill::Fill, index::Index};
+
+    use crate::Crossword;
+
+    use std::{cmp::Ordering, time::Instant};
+
+    use super::Filler;
+
+    #[test]
+    fn medium_grid() {
+        let grid = Crossword::from_string(
+            String::from(
+                "
+    ***
+    ***
+    ***
+       
+***    
+***    
+***    
+",
+            ),
+            7,
+            7,
+        )
+        .unwrap();
+
+        println!("{}", grid);
+
+        let now = Instant::now();
+        let index = Index::build_default();
+        let mut filler = Filler::new(&index);
+        let filled_puz = filler.fill(&grid).unwrap();
+        println!("Filled in {} seconds.", now.elapsed().as_secs());
+        println!("{}", filled_puz);
+    }
+
+    #[test]
+    fn test_prefilled_grid_invalid_word() {
+        let grid = Crossword::from_string(
+            String::from(
+                "
+  B  
+     
+RENAI
+",
+            ),
+            5,
+            3,
+        )
+        .unwrap();
+
+        println!("{}", grid);
+
+        let now = Instant::now();
+        let index = Index::build_default();
+        let mut filler = Filler::new(&index);
+        let filled_puz = filler.fill(&grid).unwrap();
+        println!("Filled in {} seconds.", now.elapsed().as_secs());
+        println!("{}", filled_puz);
+    }
 }

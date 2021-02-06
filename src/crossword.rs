@@ -80,6 +80,11 @@ impl Crossword {
             }
         }
 
+        start_row = None;
+        start_col = None;
+        length = 0;
+        prefilled = true;
+
         for col in 0..self.width {
             for row in 0..self.height {
                 let c = bytes[row * self.width + col] as char;
@@ -100,7 +105,7 @@ impl Crossword {
                         start_row: start_row.unwrap(),
                         start_col: start_col.unwrap(),
                         length,
-                        direction: Direction::Across,
+                        direction: Direction::Down,
                         prefilled,
                     };
                     result.push(new_entry);
@@ -129,6 +134,22 @@ impl Crossword {
         }
 
         result
+    }
+}
+
+impl fmt::Display for Crossword {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for row in 0..self.height {
+            for col in 0..self.width {
+                write!(
+                    f,
+                    "{}",
+                    self.contents.as_bytes()[row * self.width + col] as char
+                )?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
 
