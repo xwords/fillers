@@ -5,6 +5,8 @@ use std::{
 
 use crossword::{Direction, EntryIterator, EntryLocation};
 use hash::{Hash, Hasher};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 use crate::{crossword, index::Index, Crossword};
@@ -165,9 +167,6 @@ impl<'s> Fill for Filler<'s> {
 
         while let Some(candidate) = candidates.pop() {
             num_candidates += 1;
-            if num_candidates == 30 {
-                break;
-            }
             // Find the next entry to fill, sorted by # possible words and start position.
             let to_fill = entry_locations
                 .iter()
@@ -266,17 +265,25 @@ mod tests {
         let grid = Crossword::from_string(
             String::from(
                 "
-    ***
-    ***
-    ***
-       
-***    
-***    
-***    
+HOLANIKHIL*    
+          *    
+          *    
+   *    **     
+***   **       
+**         *   
+*         *    
+     *   *     
+    *         *
+   *         **
+       **   ***
+     **    *   
+    *          
+    *          
+    *          
 ",
             ),
-            7,
-            7,
+            15,
+            15,
         )
         .unwrap();
 

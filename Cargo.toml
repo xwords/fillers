@@ -11,3 +11,4 @@ wasm-bindgen = "0.2.70"
 js-sys = "0.3.47"
 rustc-hash = "1.1.0"
 serde = {version = "1.0.123", features = ["derive"] }
+rand = "0.8.0"
