@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{fmt, hash::Hash};
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone)]
@@ -153,7 +154,7 @@ impl fmt::Display for Crossword {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub enum Direction {
     Across,
     Down,

@@ -8,6 +8,7 @@ pub struct TrieNode {
     contents: Option<char>,
     children: FxHashMap<char, TrieNode>,
     terminal: bool,
+    weight: i32,
 }
 
 impl TrieNode {

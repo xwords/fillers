@@ -11,6 +11,7 @@ use crate::{crossword, index::Index, Crossword};
 
 pub mod cache;
 use cache::{CachedIsValid, CachedWords};
+use serde::{Deserialize, Serialize};
 
 pub struct Filler<'s> {
     index: &'s Index,
@@ -18,7 +19,7 @@ pub struct Filler<'s> {
     word_cache: CachedWords,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct EntryLocationToFill {
     pub(crate) start_row: usize,
     pub(crate) start_col: usize,
