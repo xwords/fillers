@@ -27,12 +27,9 @@ impl CachedWords {
         }
         let key = hasher.finish();
 
-        self.words_cache.entry(key).or_insert_with(|| {
-            let mut words = index.words(pattern);
-            let mut rng = rand::thread_rng();
-            words.shuffle(&mut rng);
-            words
-        })
+        self.words_cache
+            .entry(key)
+            .or_insert_with(|| index.words(pattern))
     }
 }
 

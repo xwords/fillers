@@ -21,7 +21,10 @@ pub struct Solver {
 #[wasm_bindgen]
 impl Solver {
     pub fn new(words_arr: Array) -> Solver {
-        let words: Vec<String> = words_arr.iter().map(|d| d.as_string().unwrap()).collect();
+        let words: Vec<(String, i32)> = words_arr
+            .iter()
+            .map(|d| (d.as_string().unwrap(), 0))
+            .collect();
 
         let index = Index::build(words);
         Solver { index }

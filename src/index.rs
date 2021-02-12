@@ -1,3 +1,4 @@
+use rand::prelude::SliceRandom;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::BufRead, io::BufReader, path::Path};
 
@@ -8,27 +9,31 @@ pub struct TrieNode {
     contents: Option<char>,
     children: FxHashMap<char, TrieNode>,
     terminal: bool,
-    weight: i32,
+    weight: Option<i32>,
 }
 
 impl TrieNode {
-    fn add(mut self, chars: &str) -> TrieNode {
+    fn add(mut self, chars: &str, weight: i32) -> TrieNode {
         match chars.as_bytes().get(0) {
             Some(c) => match self.children.remove_entry(&(*c as char)) {
                 Some((_, child)) => {
-                    self.children.insert(*c as char, child.add(&chars[1..]));
+                    self.children
+                        .insert(*c as char, child.add(&chars[1..], weight));
                 }
                 None => {
                     let new_child = TrieNode {
                         contents: Some(*c as char),
                         children: FxHashMap::default(),
                         terminal: false,
+                        weight: None,
                     };
-                    self.children.insert(*c as char, new_child.add(&chars[1..]));
+                    self.children
+                        .insert(*c as char, new_child.add(&chars[1..], weight));
                 }
             },
             None => {
                 self.terminal = true;
+                self.weight = Some(weight);
             }
         }
         self
@@ -38,7 +43,7 @@ impl TrieNode {
         &self,
         mut pattern: T,
         partial: &mut String,
-        result: &mut Vec<String>,
+        result: &mut Vec<(i32, String)>,
     ) {
         if self.contents.is_some() {
             partial.push(self.contents.unwrap());
@@ -58,7 +63,7 @@ impl TrieNode {
             }
             None => {
                 if self.terminal {
-                    result.push(partial.clone());
+                    result.push((self.weight.unwrap_or(0), partial.clone()));
                 }
             }
         }
@@ -95,15 +100,16 @@ pub struct Index {
 }
 
 impl Index {
-    pub fn build(words: Vec<String>) -> Index {
+    pub fn build(words: Vec<(String, i32)>) -> Index {
         let mut trie_root = TrieNode {
             contents: None,
             children: FxHashMap::default(),
             terminal: false,
+            weight: None,
         };
 
-        for word in words.iter() {
-            trie_root = trie_root.add(word);
+        for (word, weight) in words.iter() {
+            trie_root = trie_root.add(word, *weight);
         }
 
         Index { trie_root }
@@ -113,6 +119,7 @@ impl Index {
         let lines = lines_from_file("./WL-SP.txt")
             .into_iter()
             .filter(|s| s.len() > 2)
+            .map(|w| (w, 0))
             .collect();
 
         Index::build(lines)
@@ -123,7 +130,12 @@ impl Index {
         let mut partial = String::with_capacity(4);
         self.trie_root
             .fill_words(pattern, &mut partial, &mut result);
-        result
+
+        let mut rng = rand::thread_rng();
+        result.shuffle(&mut rng);
+        result.sort_by_key(|t| -t.0);
+
+        result.into_iter().map(|t| t.1).collect()
     }
 
     pub fn is_valid<T: Iterator<Item = char> + Clone>(&self, chars: T) -> bool {
