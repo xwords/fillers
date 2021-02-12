@@ -194,7 +194,7 @@ impl<'s> Fill for Filler<'s> {
         while let Some(candidate) = candidates.pop() {
             num_candidates += 1;
             // Find the next entry to fill, sorted by # possible words and start position.
-            let to_fill_option = entry_locations
+            let to_fill_options = entry_locations
                 .iter()
                 .filter(|iter| {
                     !partial_fill
@@ -205,14 +205,17 @@ impl<'s> Fill for Filler<'s> {
                         ))
                 })
                 .map(|entry_location| EntryIterator::new(&candidate, entry_location))
-                .filter(|iter| iter.clone().any(|c| c == ' '))
-                .min_by_key(|iter| {
-                    (
-                        self.word_cache.words(iter.clone(), self.index).len(),
-                        iter.entry_location.start_row,
-                        iter.entry_location.start_col,
-                    )
-                });
+                .filter(|iter| iter.clone().any(|c| c == ' '));
+
+            let entries_left = to_fill_options.clone().count();
+
+            let to_fill_option = to_fill_options.min_by_key(|iter| {
+                (
+                    self.word_cache.words(iter.clone(), self.index).len(),
+                    iter.entry_location.start_row,
+                    iter.entry_location.start_col,
+                )
+            });
 
             if !to_fill_option.is_some() {
                 return Ok(candidate);
@@ -239,7 +242,7 @@ impl<'s> Fill for Filler<'s> {
                 used_words.clear();
 
                 if valid {
-                    if !new_candidate.contents.contains(' ') {
+                    if entries_left == 1 || !new_candidate.contents.contains(' ') {
                         return Ok(new_candidate);
                     }
                     candidates.push(new_candidate);
@@ -357,6 +360,44 @@ RENAI
         let index = Index::build_default();
         let mut filler = Filler::new(&index);
         let filled_puz = filler.fill(&grid, None).unwrap();
+        println!("Filled in {} seconds.", now.elapsed().as_secs());
+        println!("{}", filled_puz);
+    }
+
+    #[test]
+    fn test_weighted_simple() {
+        let grid = Crossword::from_string(
+            String::from(
+                "
+     
+     
+     
+",
+            ),
+            5,
+            3,
+        )
+        .unwrap();
+
+        println!("{}", grid);
+
+        let now = Instant::now();
+        let words = vec![
+            (String::from("BBBBB"), 2),
+            (String::from("AAAAA"), 1),
+            (String::from("BBB"), 0),
+            (String::from("AAA"), 2),
+        ];
+
+        let index = Index::build(words);
+        let mut filler = Filler::new(&index);
+
+        let entry_locations_to_fill = vec![EntryLocationToFill {
+            start_row: 0,
+            start_col: 0,
+            direction: Direction::Across,
+        }];
+        let filled_puz = filler.fill(&grid, Some(&entry_locations_to_fill)).unwrap();
         println!("Filled in {} seconds.", now.elapsed().as_secs());
         println!("{}", filled_puz);
     }
