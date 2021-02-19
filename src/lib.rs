@@ -11,22 +11,27 @@ use self::js_sys::Array;
 use fill::{EntryLocationToFill, Fill, Filler};
 use index::Index;
 use js_sys::{JsString, Number};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 #[wasm_bindgen]
 pub struct Solver {
     index: Index,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WeightedWord {
+    word: String,
+    weight: i32,
+}
+
 #[wasm_bindgen]
 impl Solver {
-    pub fn new(words_arr: Array) -> Solver {
-        let words: Vec<(String, i32)> = words_arr
-            .iter()
-            .map(|d| (d.as_string().unwrap(), 0))
-            .collect();
+    pub fn new(words_arr: &JsValue) -> Solver {
+        let words: Vec<WeightedWord> = words_arr.into_serde().unwrap();
 
-        let index = Index::build(words);
+        let index = Index::build(words.into_iter().map(|w| (w.word, w.weight)).collect());
         Solver { index }
     }
 
